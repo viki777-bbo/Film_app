@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MovieApp
+namespace Film_app
 {
     // Trida reprezentujici jeden film v seznamu vysledku
     public class Movie
