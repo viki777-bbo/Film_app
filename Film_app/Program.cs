@@ -1,16 +1,4 @@
-﻿using System.Text.Json;
-class Program
-    
-class SearchResponse
-{
-    public List<Movie> Search { get; set; }
-}
-
-class Movie
-{
-    public string Title { get; set; }
-    public string Year { get; set; }
-}
+﻿
 {
     static async Task Main()
     {
@@ -22,5 +10,22 @@ class Movie
         string data = await response.Content.ReadAsStringAsync();
         Console.WriteLine(data);
         
+        
     }
+}
+
+class Program
+{
+    
+}
+    
+class SearchResponse
+{
+    public List<Movie> Search { get; set; }
+}
+
+class Movie
+{
+    public string Title { get; set; }
+    public string Year { get; set; }
 }
