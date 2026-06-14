@@ -2,7 +2,7 @@
 
 Jednoduchá konzolová aplikace v jazyce C#, která umožňuje vyhledávat filmy pomocí OMDb API.
 
---
+---
 
 ##  O projektu
 
