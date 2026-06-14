@@ -2,16 +2,11 @@
 {
     class Program
     {
-        // Abstrakce přes rozhraní – konkrétní implementaci lze snadno vyměnit (např. za jiné API)
+        // Inicializace služeb a vnitřní paměti programu
         private static readonly IMovieService MovieService = new OmdbService();
-
-        // Uchovává seznam všech výrazů, které uživatel hledal v aktuálním běhu programu
         private static readonly List<string> SearchHistory = new List<string>();
-
-        // Poslední zobrazený film – sdílený stav mezi příkazy 'details' a 'save'
         private static MovieDetails lastViewedMovie = null;
 
-        // Vstupní bod programu – spouští smyčku REPL (čti → vyhodnoť → vypiš → opakuj)
         static async Task Main()
         {
             Console.WriteLine("=== Vitajte v aplikaci Filmy OMDb ===");
@@ -23,11 +18,9 @@
                 Console.Write("\nZadej prikaz > ");
                 string command = Console.ReadLine();
 
-                // Obrana proti null (Ctrl+D / EOF na Linuxu) a normalizace vstupu
                 if (command == null) continue;
-                command = command.Trim().ToLower();
+                command = command.Trim().ToLower(); // Odstraní mezery a převede na malá písmena
 
-                // Směrování příkazů – každý case volá vlastní async/sync metodu
                 switch (command)
                 {
                     case "search":
@@ -56,39 +49,43 @@
             }
         }
 
-        // Vyhledá filmy podle názvu a vypíše max. N výsledků.
-        // Dotaz se uloží do historie; limit se ověří přes TryParse.
         private static async Task HandleSearchAsync()
         {
             Console.Write("Zadej nazev filmu pro vyhledani: ");
             string query = Console.ReadLine();
 
+            // Kontrola, zda uživatel nezadal prázdný text nebo jen 1 znak
             if (string.IsNullOrWhiteSpace(query))
             {
                 Console.WriteLine("[CHYBA] Nazev filmu nesmi byt prazdny.");
                 return;
             }
 
+            if (query.Length < 2)
+            {
+                Console.WriteLine("[CHYBA] Zadej alespon 2 znaky.");
+                return;
+            }
+
             Console.Write("Zadej maximalni pocet zobrazenych vysledku (cislo): ");
             string limitInput = Console.ReadLine();
 
-            // TryParse – bezpečná konverze; při neplatném vstupu použijeme výchozí hodnotu
+            // Převod textu na číslo. Pokud selže, nastaví se výchozí limit 5
             if (!int.TryParse(limitInput, out int limit) || limit <= 0)
             {
                 Console.WriteLine("[INFO] Neplatne cislo. Pouzije se vychozi limit 5 filmu.");
                 limit = 5;
             }
 
-            // Uložení do historie před samotným voláním API
             SearchHistory.Add(query);
 
             Console.WriteLine("Vyhledavam...");
             SearchResponse response = await MovieService.SearchMoviesAsync(query);
 
-            // API může vrátit null (síťová chyba) nebo Response == "False" (nenalezeno)
+            // Kontrola, zda API vůbec něco vrátilo
             if (response == null || response.Response == "False")
             {
-                Console.WriteLine("[INFO] Zadny film nebyl nenalezen. Zkontrolujte zadany nazev.");
+                Console.WriteLine("[INFO] Zadny film nebyl nalezen. Zkontrolujte zadany nazev.");
                 return;
             }
 
@@ -96,22 +93,27 @@
             int count = 0;
             foreach (Movie movie in response.Search)
             {
-                if (count >= limit) break;
+                if (count >= limit) break; // Zastaví výpis, pokud jsme dosáhli limitu
                 Console.WriteLine($"- [{movie.ImdbId}] {movie.Title} ({movie.Year})");
                 count++;
             }
         }
 
-        // Načte podrobnosti o filmu podle IMDb ID (formát tt1234567).
-        // Výsledek uloží do lastViewedMovie, aby ho šlo příkazem 'save' zapsat na disk.
         private static async Task HandleDetailsAsync()
         {
             Console.Write("Zadej IMDb ID filmu (napr. tt0120737): ");
             string id = Console.ReadLine();
 
+            // Validace ID formatu (nesmí být prázdné a musí začínat na 'tt')
             if (string.IsNullOrWhiteSpace(id))
             {
                 Console.WriteLine("[CHYBA] ID nesmi byt prazdne.");
+                return;
+            }
+
+            if (!id.StartsWith("tt"))
+            {
+                Console.WriteLine("[CHYBA] IMDb ID musi zacinat na 'tt' (napr. tt0120737).");
                 return;
             }
 
@@ -124,7 +126,7 @@
                 return;
             }
 
-            // Sdílený stav – přepíše předchozí film; 'save' vždy uloží ten poslední
+            // Uloží film do paměti, aby se dal později exportovat přes příkaz 'save'
             lastViewedMovie = details;
 
             Console.WriteLine($"\nDETAIL FILMU: {details.Title} ({details.Year})");
@@ -134,10 +136,9 @@
             Console.WriteLine("[INFO] Tento detail muzete nyni ulozit prikazem 'save'.");
         }
 
-        // Zapíše detail posledního zobrazeného filmu do souboru film_detail.txt
-        // ve složce, odkud je program spuštěn. Existující soubor přepíše.
         private static void SaveLastMovieToFile()
         {
+            // Kontrola, zda uživatel předtím vůbec zobrazil nějaký detail filmu
             if (lastViewedMovie == null)
             {
                 Console.WriteLine("[CHYBA] Nejprve musite vyhledat detail nejakeho filmu pomoci 'details'.");
@@ -155,18 +156,17 @@
                               $"Popis: {lastViewedMovie.Plot}\n" +
                               $"Ulozeno dne: {DateTime.Now}\n";
 
-                // WriteAllText vytvoří soubor pokud neexistuje, jinak ho přepíše
+                // Zápis textu do souboru (pokud soubor existuje, přepíše ho)
                 File.WriteAllText(fileName, text);
                 Console.WriteLine($"[USPCH] Data byla uspesne ulozena do souboru: {Path.GetFullPath(fileName)}");
             }
-            catch (Exception)
+            catch
             {
-                // Může selhat např. při nedostatku práv nebo plném disku
+                // Ochrana před pádem aplikace, pokud selže zápis na disk (např. kvůli právům)
                 Console.WriteLine("[CHYBA] Nepodarilo se zapsat data do souboru.");
             }
         }
 
-        // Vypíše všechny výrazy hledané v aktuálním běhu programu (reset při restartu)
         private static void PrintHistory()
         {
             if (SearchHistory.Count == 0)
@@ -182,7 +182,6 @@
             }
         }
 
-        // Vypíše přehled všech dostupných příkazů
         private static void PrintHelp()
         {
             Console.WriteLine("\nSeznam dostupnych prikazu:");
