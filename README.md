@@ -1,3 +1,97 @@
-# Film app 
+# Film Aplikace podle OMDb Api
 
-- *This is an app i created in order for people to be able to watch, monitor, and search movies as much as you would like*
+Jednoduchá konzolová aplikace v jazyce C#, která umožňuje vyhledávat filmy pomocí OMDb API.
+
+--
+
+##  O projektu
+
+Aplikace slouží k práci se:
+
+* API (OMDb)
+* async / await
+* JSON daty
+* základy OOP
+* konzolovým vstupem (REPL)
+
+---
+
+## Funkce
+
+* Vyhledávání filmů podle názvu
+* Zobrazení detailu filmu
+* Historie vyhledávání
+* Uložení filmu do souboru
+* Cachování (opakované dotazy jsou rychlejší)
+* Ošetření chyb (špatný vstup, API, internet)
+
+---
+
+## Příkazy
+
+* Příkaz    Popis                          
+
+| `search`  | Vyhledá filmy podle názvu      |
+| `details` | Zobrazí detail podle IMDb ID   |
+| `history` | Zobrazí historii hledání       |
+| `save`    | Uloží poslední film do souboru |
+| `help`    | Vypíše nápovědu                |
+| `exit`    | Ukončí aplikaci                |
+
+---
+
+## Spuštění
+
+```bash
+dotnet run
+```
+
+---
+
+## Ukázka použití
+
+```
+search
+batman
+5
+
+details
+tt0372784
+
+save
+
+history
+
+exit
+```
+
+---
+
+## Struktura projektu
+
+* `Program.cs` - hlavní logika aplikace
+* `IMovieService.cs` - rozhraní
+* `OmdbService.cs` - práce s API
+* `Models` - datové třídy
+
+---
+
+## Technologie
+
+* C#
+* .NET
+* HttpClient
+* System.Text.Json
+
+---
+
+## Výstup
+
+* soubor `film_detail.txt`
+
+---
+
+## Poznámky
+
+* Je potřeba internet
+* API má omezení (Limitace free verze)
